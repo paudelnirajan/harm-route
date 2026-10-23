@@ -1,0 +1,26 @@
+# Chat models used in harm-route. Code reads everything model-specific from here or from the
+# model/tokenizer itself; nothing about a model is hardcoded in src/ or notebooks.
+#
+# template_kwargs: extra arguments for tokenizer.apply_chat_template, pinned so the rendered
+# prompt never drifts (Qwen3 thinking mode, Llama's auto-inserted date).
+
+qwen3-0.6b:
+  hf_id: Qwen/Qwen3-0.6B
+  role: debug
+  template_kwargs: {enable_thinking: false}
+
+qwen3-1.7b:
+  hf_id: Qwen/Qwen3-1.7B
+  role: main
+  template_kwargs: {enable_thinking: false}
+
+gemma3-1b-it:
+  hf_id: unsloth/gemma-3-1b-it   # ungated mirror of google/gemma-3-1b-it
+  role: main
+  dtype: bfloat16                # fp16 overflows in Gemma 3
+  template_kwargs: {}
+
+llama3.2-1b-it:
+  hf_id: unsloth/Llama-3.2-1B-Instruct   # ungated mirror of meta-llama/Llama-3.2-1B-Instruct
+  role: scale
+  template_kwargs: {date_string: "26 Jul 2024"}

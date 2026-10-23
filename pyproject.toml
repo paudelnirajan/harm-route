@@ -1,0 +1,41 @@
+[project]
+name = "harm-route"
+version = "0.1.0"
+description = "Does script/tokenization shift multilingual safety failures between comprehension and routing?"
+authors = [
+    { name = "Nirajan Paudel", email = "nirajan.paudel@colorado.edu" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "datasets>=5.1.0",
+    "matplotlib>=3.11.2",
+    "numpy>=2.5.4",
+    "pandas>=3.0.6",
+    "pyyaml>=6.0.3",
+    "scikit-learn>=1.9.1",
+    "torch>=2.14.1",
+    "tqdm>=4.70.1",
+    "transformer-lens>=4.2,<5",
+    "transformers>=5.19.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.10.0,<0.11.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.4.0",
+    "ipywidgets>=8.1.9",
+    "jupyterlab>=4.6.4",
+    "nbstripout>=0.9.1",
+    "pytest>=9.1.1",
+    "ruff>=0.17.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["slow: loads model weights (deselect with -m 'not slow')"]
+
+[tool.ruff]
+line-length = 100
