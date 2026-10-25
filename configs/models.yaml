@@ -6,13 +6,16 @@
 
 qwen3-0.6b:
   hf_id: Qwen/Qwen3-0.6B
-  role: debug
+  role: debug          # plumbing only: its refusals don't start with a fixed token (see decisions.md)
   template_kwargs: {enable_thinking: false}
+  # refusal_tokens: ["I"]
 
 qwen3-1.7b:
   hf_id: Qwen/Qwen3-1.7B
   role: main
   template_kwargs: {enable_thinking: false}
+  # first token of its English refusals ("I'm sorry, but", "I cannot assist", "I must ...")
+  refusal_tokens: ["I"]
 
 gemma3-1b-it:
   hf_id: unsloth/gemma-3-1b-it   # ungated mirror of google/gemma-3-1b-it

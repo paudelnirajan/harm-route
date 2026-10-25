@@ -26,11 +26,16 @@ def find_positions(tok, user_content: str, template_kwargs: dict) -> dict:
     """
     text = render(tok, user_content, template_kwargs)
 
-    # 1. character span of the instruction inside the rendered string
-    start = text.rfind(user_content)
-    if start == -1:
+    # 1. character span of the instruction inside the rendered string. Render once with a sentinel
+    # to get the template's prefix/suffix, rather than searching: a short instruction ("hi") can also
+    # occur inside the template text ("</think>").
+    sentinel = "\x00USER\x00"
+    s_text = render(tok, sentinel, template_kwargs)
+    prefix, suffix = s_text.split(sentinel)
+    if text != prefix + user_content + suffix:
         # e.g. the Gemma/Llama templates strip surrounding whitespace -> strip prompts in data prep
         raise ValueError(f"user content not found verbatim in rendered template: {user_content!r}")
+    start = len(prefix)
     end = start + len(user_content)
 
     # 2. tokenize, keeping each token's (char_start, char_end)

@@ -43,6 +43,14 @@ def test_post_inst_length_is_language_independent(model):
     assert len(lengths) == 1
 
 
+@pytest.mark.parametrize("prompt", ["hi", "user", "model", "assistant"])
+def test_short_prompt_inside_template_text(model, prompt):
+    # these strings also occur in some template ("</think>", role headers); must find the user's copy
+    tok, kwargs = model
+    p = find_positions(tok, prompt, kwargs)
+    assert tok.decode(p["input_ids"][p["inst_start"] : p["t_inst"] + 1]).strip() == prompt
+
+
 def test_whitespace_mismatch_raises():
     tok = load_tokenizer("gemma3-1b-it")  # Gemma's template strips whitespace
     with pytest.raises(ValueError):
