@@ -39,3 +39,13 @@ markers = ["slow: loads model weights (deselect with -m 'not slow')"]
 
 [tool.ruff]
 line-length = 100
+
+# Linux (CURC L40, driver 550 = CUDA 12.4): PyPI's Linux torch is built for CUDA 13 (needs driver >= 580),
+# so take the CUDA 12.6 build instead (runs on 12.x drivers via minor-version compatibility). Mac: PyPI.
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu126", marker = "sys_platform == 'linux'" }]
+
+[[tool.uv.index]]
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true
