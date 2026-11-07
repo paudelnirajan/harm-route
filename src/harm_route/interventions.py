@@ -48,6 +48,42 @@ def add_hooks(v: torch.Tensor, layer: int):
     return [(f"blocks.{layer}.hook_resid_pre", make_add(v))]
 
 
+def make_pos_mean_ablate(v: torch.Tensor, mu: float, idx: torch.Tensor):
+    """Hook that sets the component along v to mu at ONE token per row (idx [b]); other tokens untouched.
+
+    For directions read at one position (e.g. h at t_inst): the target mu must be measured at that same
+    position. Skips single-token steps (generation with a KV cache), where that position is already past.
+    """
+    v_hat = v / v.norm()  # [d]
+
+    def fn(resid, hook):  # resid [b, T, d]
+        if resid.shape[1] == 1:
+            return resid
+        u = v_hat.to(resid.device, resid.dtype)
+        rows = torch.arange(resid.shape[0], device=resid.device)  # [b]
+        i = idx.to(resid.device)  # [b]
+        x = resid[rows, i]  # [b, d]: advanced indexing picks token i[b] in row b
+        out = resid.clone()  # don't edit the model's tensor in place
+        out[rows, i] = x - ((x @ u) - mu).unsqueeze(-1) * u  # [b, d]; new coef = mu
+        return out
+
+    return fn
+
+
+def pos_mean_ablate_hooks(v: torch.Tensor, mus: torch.Tensor, idx: torch.Tensor):
+    """Mean-ablate v at token idx (per row) at the output of every block; mus [n_layers] = target per layer.
+
+    Uses hook_resid_post because the cached activations (collect.py) and so the targets mus[l] are
+    measured there: a level must be applied where it was measured. (blocks.l.hook_resid_pre = resid_post of l-1.)
+    """
+    return [(f"blocks.{l}.hook_resid_post", make_pos_mean_ablate(v, mus[l].item(), idx)) for l in range(len(mus))]
+
+
+def t_inst_index(positions: list[dict], shift: torch.Tensor) -> torch.Tensor:
+    """Index of t_inst in each padded row: original index + padding shift (left padding moves tokens right)."""
+    return torch.tensor([p["t_inst"] for p in positions]) + shift  # [b]
+
+
 # ---------- forward + metrics ----------
 
 
@@ -57,14 +93,16 @@ def last_logp(
 ) -> torch.Tensor:
     """Next-token log-probs at the last position for each prompt, under fwd_hooks. Returns [N, V] fp32 CPU.
 
-    Left padding so every prompt's last token sits at index -1.
+    Left padding so every prompt's last token sits at index -1. fwd_hooks is a list of (name, fn), or a
+    callable (positions, shift) -> list, for hooks that depend on each batch's token positions.
     """
     device = bridge.cfg.device
     out = []
     for i in range(0, len(prompts), batch_size):
         ps = [find_positions(tok, x, template_kwargs) for x in prompts[i : i + batch_size]]
-        ids, mask, _ = pad_batch([p["input_ids"] for p in ps], pad_id, "left")  # [b, T]
-        with torch.inference_mode(), bridge.hooks(fwd_hooks=list(fwd_hooks)):
+        ids, mask, shift = pad_batch([p["input_ids"] for p in ps], pad_id, "left")  # [b, T]
+        hooks = fwd_hooks(ps, shift) if callable(fwd_hooks) else list(fwd_hooks)
+        with torch.inference_mode(), bridge.hooks(fwd_hooks=hooks):
             logits = bridge(ids.to(device), attention_mask=mask.to(device))  # [b, T, V]
         out.append(torch.log_softmax(logits[:, -1].float(), dim=-1).cpu())  # [b, V]
     return torch.cat(out)  # [N, V]

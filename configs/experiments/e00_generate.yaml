@@ -9,7 +9,9 @@ sets: [harmful_val, harmless_val]
 r_pos: -1          # index into t_post_inst (-1 = last template token before the answer)
 r_layer: 18        # addition layer; ablation is at every layer
 h_layer: 12        # control: ablate h (d_h peaks at L10-13)
-conditions: [base, ablate_r, add_r, ablate_random, ablate_h]
+conditions: [base, ablate_r, add_r, ablate_random, ablate_h,
+             add_r_x0.25, add_r_x0.5, add_r_x0.75,   # dose sweep: alpha * r (add_r = x1.0 loops)
+             tinst_h_harmless]                      # h set to harmless level at t_inst only (all-token edits break the model)
 
 max_new_tokens: 256
 batch_size: 32

@@ -15,7 +15,8 @@ from pathlib import Path
 import torch
 import yaml
 
-from harm_route.interventions import ablate_hooks, add_hooks
+from harm_route.collect import collect_resid_batched
+from harm_route.interventions import ablate_hooks, add_hooks, pos_mean_ablate_hooks, t_inst_index
 from harm_route.models import load_bridge, load_tokenizer, model_config, pad_token_id
 from harm_route.prompts import find_positions, pad_batch
 
@@ -23,14 +24,18 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def generate(bridge, tok, prompts, kw, pad_id, hooks, max_new_tokens, batch_size):
-    """Greedy continuation of each prompt under hooks. Returns list of (text, n_new_tokens)."""
+    """Greedy continuation of each prompt under hooks. Returns list of (text, n_new_tokens).
+
+    hooks: list of (name, fn), or a callable (positions, shift) -> list for position-specific edits.
+    """
     device = bridge.cfg.device
     stop = {tok.eos_token_id, pad_id}
     out = []
     for i in range(0, len(prompts), batch_size):
         ps = [find_positions(tok, x, kw) for x in prompts[i : i + batch_size]]
-        ids, mask, _ = pad_batch([p["input_ids"] for p in ps], pad_id, "left")  # [b, T]
-        with torch.inference_mode(), bridge.hooks(fwd_hooks=list(hooks)):
+        ids, mask, shift = pad_batch([p["input_ids"] for p in ps], pad_id, "left")  # [b, T]
+        hk = hooks(ps, shift) if callable(hooks) else list(hooks)
+        with torch.inference_mode(), bridge.hooks(fwd_hooks=hk):
             seq = bridge.generate(
                 ids.to(device), attention_mask=mask.to(device), max_new_tokens=max_new_tokens,
                 do_sample=False, return_type="tokens", verbose=False,
@@ -41,7 +46,15 @@ def generate(bridge, tok, prompts, kw, pad_id, hooks, max_new_tokens, batch_size
     return out
 
 
-def build_conditions(cfg, dirs, n_layers, d_model):
+def t_inst_levels(bridge, tok, prompts, kw, pad_id, v):
+    """Mean projection on v_hat at t_inst, per layer (resid_post), over prompts. -> [L]"""
+    ps = [find_positions(tok, x, kw) for x in prompts]
+    inst, _ = collect_resid_batched(bridge, ps, pad_id, batch_size=16)  # [N, L, d]
+    return (inst @ (v / v.norm())).mean(0)  # [L]
+
+
+def build_conditions(cfg, dirs, n_layers, d_model, levels=None):
+    """Condition name -> hooks. 'add_r_x{a}' adds a * r; 'tinst_h_harmless' sets h at t_inst to the harmless level."""
     r = dirs["r"][cfg["r_pos"], cfg["r_layer"]]  # [d]
     h = dirs["h"][cfg["h_layer"]]  # [d]
     rand = torch.randn(d_model, generator=torch.Generator().manual_seed(cfg["seed"]))  # [d]
@@ -52,6 +65,11 @@ def build_conditions(cfg, dirs, n_layers, d_model):
         "ablate_random": ablate_hooks(rand, n_layers),
         "ablate_h": ablate_hooks(h, n_layers),
     }
+    for c in cfg["conditions"]:
+        if c.startswith("add_r_x"):
+            table[c] = add_hooks(float(c.removeprefix("add_r_x")) * r, cfg["r_layer"])
+    if levels is not None:  # hooks depend on each batch's t_inst index -> callable
+        table["tinst_h_harmless"] = lambda ps, shift: pos_mean_ablate_hooks(h, levels, t_inst_index(ps, shift))
     return {c: table[c] for c in cfg["conditions"]}
 
 
@@ -77,7 +95,11 @@ def main():
     n_layers, d_model = bridge.cfg.n_layers, bridge.cfg.d_model
     splits = json.loads((ROOT / cfg["splits"].format(model=name)).read_text())
     dirs = torch.load(ROOT / cfg["directions"].format(model=name))
-    conds = build_conditions(cfg, dirs, n_layers, d_model)
+    levels = None
+    if "tinst_h_harmless" in cfg["conditions"]:  # target from TRAIN harmless prompts (never the val set)
+        levels = t_inst_levels(bridge, tok, splits["harmless_train"], kw, pad_id, dirs["h"][cfg["h_layer"]])
+        print(f"harmless level on h at t_inst, L{cfg['h_layer']}: {levels[cfg['h_layer']]:.2f}")
+    conds = build_conditions(cfg, dirs, n_layers, d_model, levels)
     print(f"{name} on {args.device} {dtype}; r[{cfg['r_pos']}, L{cfg['r_layer']}] "
           f"depth {cfg['r_layer'] / (n_layers - 1):.2f}; conditions {list(conds)}")
 
@@ -109,7 +131,7 @@ def main():
                                             "text": text}, ensure_ascii=False) + "\n")
             refused = sum(any(x in g.lower() for x in subs) for g, _ in gens)
             maxed = sum(n == max_new for _, n in gens)
-            print(f"{s:13s} {c:14s} substring-refusal {refused:3d}/{len(gens)}  "
+            print(f"{s:13s} {c:16s} substring-refusal {refused:3d}/{len(gens)}  "
                   f"hit max_len {maxed:3d}  mean len {sum(n for _, n in gens) / len(gens):5.1f}  "
                   f"{time.time() - t:.0f}s")
 

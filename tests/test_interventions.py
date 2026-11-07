@@ -11,6 +11,9 @@ from harm_route.interventions import (
     kl,
     make_ablate,
     make_add,
+    make_pos_mean_ablate,
+    pos_mean_ablate_hooks,
+    t_inst_index,
     refusal_score,
 )
 
@@ -76,3 +79,26 @@ def test_refusal_score_known_value():
     p = torch.tensor([[0.6, 0.1, 0.3]])  # refusal ids {0, 1}: mass 0.7 vs rest 0.3
     s = refusal_score(p.log(), torch.tensor([0, 1]))
     assert math.isclose(s.item(), math.log(0.7 / 0.3), rel_tol=1e-5)
+
+
+def test_pos_mean_ablate_one_token_per_row():
+    idx = torch.tensor([2, 5])
+    v_hat = V / V.norm()
+    out = make_pos_mean_ablate(V, -3.0, idx)(X, None)
+    rows = torch.arange(2)
+    assert torch.allclose(out[rows, idx] @ v_hat, torch.full((2,), -3.0), atol=1e-4)  # edited tokens hit mu
+    keep = torch.ones(2, 7, dtype=torch.bool); keep[rows, idx] = False
+    assert torch.equal(out[keep], X[keep])  # every other token untouched
+    assert not torch.equal(X[rows, idx] @ v_hat, out[rows, idx] @ v_hat)  # input not edited in place
+
+
+def test_pos_mean_ablate_skips_generation_steps():
+    x1 = X[:, :1]  # [b, 1, d]: a KV-cache step
+    assert torch.equal(make_pos_mean_ablate(V, 0.0, torch.tensor([3, 3]))(x1, None), x1)
+
+
+def test_t_inst_index_and_hook_names():
+    pos = [{"t_inst": 4}, {"t_inst": 1}]
+    assert t_inst_index(pos, torch.tensor([0, 3])).tolist() == [4, 4]
+    hooks = pos_mean_ablate_hooks(V, torch.zeros(3), torch.tensor([0]))
+    assert [n for n, _ in hooks] == [f"blocks.{l}.hook_resid_post" for l in range(3)]
