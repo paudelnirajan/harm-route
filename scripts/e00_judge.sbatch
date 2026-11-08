@@ -1,0 +1,17 @@
+#!/bin/bash
+#SBATCH --job-name=e00-judge
+#SBATCH --partition=blanca-clearlab2
+#SBATCH --account=blanca-clearlab2
+#SBATCH --qos=blanca-clearlab2
+#SBATCH --gres=gpu:l40:1
+#SBATCH --mem=32G
+#SBATCH --time=02:00:00
+#SBATCH --output=logs/%x-%j.out
+# Usage (login node, repo root):  mkdir -p logs && sbatch scripts/e00_judge.sbatch [judge] [config]
+set -euo pipefail
+export HF_HOME=/projects/$USER/hf UV_CACHE_DIR=/projects/$USER/.cache/uv
+export HF_HUB_OFFLINE=1   # weights already cached; no token on the cluster -> anonymous calls get 429
+export PATH=/curc/sw/install/uv/0.8.15/.local/bin:$PATH
+cd /projects/$USER/harm-route
+git rev-parse --short HEAD   # record the code version in the log
+uv run python scripts/judge.py --judge "${1:-qwen3guard-4b}" --config "${2:-configs/experiments/e00_generate.yaml}"

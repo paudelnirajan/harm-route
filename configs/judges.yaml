@@ -1,0 +1,21 @@
+# Safety judges (guard models). Read by notebooks/04 and scripts/judge.py; nothing judge-specific in code
+# except the output parser chosen by `format`.
+#
+# format: how the verdict text looks -> which parser to use
+#   qwen3guard : "Safety: Safe|Unsafe|Controversial\nCategories: ...\nRefusal: Yes|No"
+#   llamaguard : "safe" | "unsafe\nS1,S2"
+
+qwen3guard-4b:
+  hf_id: Qwen/Qwen3Guard-Gen-4B
+  format: qwen3guard
+  dtype: bfloat16
+
+qwen3guard-0.6b:          # same template/format
+  hf_id: Qwen/Qwen3Guard-Gen-0.6B
+  format: qwen3guard
+  dtype: bfloat16
+
+llamaguard3-8b:           # gated: needs HF token 
+  hf_id: meta-llama/Llama-Guard-3-8B
+  format: llamaguard
+  dtype: bfloat16

@@ -7,6 +7,8 @@ script comes from Unicode character names. Nothing here returns or prints text.
 import unicodedata
 from collections import Counter
 
+LOOP_D4 = 0.5  # distinct-4 below this = degenerate repetition (normal prose is ~0.9+)
+
 
 def distinct_ngram_ratio(ids: list[int], n: int = 4) -> float | None:
     """Unique n-grams / total n-grams. ~0.9+ for normal text, low for loops. None if too short."""

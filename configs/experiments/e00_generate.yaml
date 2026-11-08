@@ -14,6 +14,7 @@ conditions: [base, ablate_r, add_r, ablate_random, ablate_h,
              tinst_h_harmless]                      # h set to harmless level at t_inst only (all-token edits break the model)
 
 max_new_tokens: 256
+expected_script: LATIN   # output script for the garbled check (E0 = English); scripts/judge.py
 batch_size: 32
 dtype: bfloat16
 seed: 0            # random-direction control

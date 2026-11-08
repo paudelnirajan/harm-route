@@ -15,10 +15,9 @@ from statistics import mean, median
 import yaml
 
 from harm_route.models import load_tokenizer
-from harm_route.text_stats import distinct_ngram_ratio, dominant_script, max_line_repeat
+from harm_route.text_stats import LOOP_D4 as LOOP, distinct_ngram_ratio, dominant_script, max_line_repeat
 
 ROOT = Path(__file__).resolve().parents[1]
-LOOP = 0.5  # distinct-4 below this = degenerate repetition (normal prose is ~0.9+)
 
 
 def main():
