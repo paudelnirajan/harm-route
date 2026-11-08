@@ -11,6 +11,7 @@
 set -euo pipefail
 export HF_HOME=/projects/$USER/hf UV_CACHE_DIR=/projects/$USER/.cache/uv
 export HF_HUB_OFFLINE=1   # weights already cached; no token on the cluster -> anonymous calls get 429
+export PYTHONUNBUFFERED=1   # print progress lines immediately (stdout to a file is block-buffered otherwise)
 export PATH=/curc/sw/install/uv/0.8.15/.local/bin:$PATH
 cd /projects/$USER/harm-route
 git rev-parse --short HEAD   # record the code version in the log
