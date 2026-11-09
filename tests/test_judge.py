@@ -55,3 +55,14 @@ def test_judge_batch_matches_single():
     single = [judge_batch(judge, jtok, [p])[0] for p in pairs]
     assert batched == single
     assert [parse_qwen3guard(v)["refusal"] for v in batched] == ["No", "Yes"]
+
+
+def test_cohen_kappa():
+    from harm_route.judge import cohen_kappa
+
+    assert cohen_kappa(list("aabb"), list("aabb")) == 1.0
+    assert cohen_kappa(list("aabb"), list("abab")) == 0.0  # 50% agreement = chance here
+    # classic: 90% raw agreement on imbalanced labels can be weak beyond chance
+    a = ["r"] * 18 + ["c"] * 2
+    b = ["r"] * 17 + ["c"] + ["r"] + ["c"]
+    assert abs(cohen_kappa(a, b) - 0.444) < 0.01

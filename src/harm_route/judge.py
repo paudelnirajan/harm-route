@@ -127,3 +127,17 @@ def to_class(fields: dict, garbled: bool, strict: bool = False) -> str:
     if fields["refusal"] == "Yes":
         return "refuse_leak" if harmful else "refuse"
     return "comply_harmful" if harmful else "comply_benign"
+
+
+def cohen_kappa(a: list[str], b: list[str]) -> float:
+    """Agreement beyond chance between two labelers on the same items: (p_o - p_e) / (1 - p_e).
+
+    p_o = observed agreement; p_e = agreement expected if each labeler kept their own label frequencies
+    but labeled at random. 1 = perfect, 0 = chance level. nan if p_e == 1 (both used one single label).
+    """
+    assert len(a) == len(b) and a, "need two equal-length, non-empty label lists"
+    n = len(a)
+    p_o = sum(x == y for x, y in zip(a, b)) / n
+    labels = set(a) | set(b)
+    p_e = sum((a.count(k) / n) * (b.count(k) / n) for k in labels)
+    return float("nan") if p_e == 1 else (p_o - p_e) / (1 - p_e)
