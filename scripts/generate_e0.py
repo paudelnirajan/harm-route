@@ -13,12 +13,12 @@ import time
 from pathlib import Path
 
 import torch
-import yaml
 
 from harm_route.collect import collect_resid_batched
 from harm_route.interventions import ablate_hooks, add_hooks, pos_mean_ablate_hooks, t_inst_index
 from harm_route.models import load_bridge, load_tokenizer, model_config, pad_token_id
 from harm_route.prompts import find_positions, pad_batch
+from harm_route.run_config import load_config
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -80,9 +80,10 @@ def main():
     ap.add_argument("--max-new-tokens", type=int)
     ap.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     ap.add_argument("--check", action="store_true", help="batched vs one-by-one on 4 prompts, then exit")
+    ap.add_argument("--lang", help="FLORES code, for per-language configs (E1)")
     args = ap.parse_args()
 
-    cfg = yaml.safe_load(Path(args.config).read_text())
+    cfg = load_config(args.config, args.lang)
     name = cfg["model"]
     mcfg = model_config(name)
     kw = mcfg["template_kwargs"]

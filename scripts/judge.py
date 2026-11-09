@@ -18,10 +18,10 @@ from collections import Counter
 from pathlib import Path
 
 import torch
-import yaml
 
 from harm_route.judge import CLASSES, is_garbled, judge_batch, load_judge, parse_verdict, to_class
 from harm_route.models import load_tokenizer
+from harm_route.run_config import load_config
 from harm_route.text_stats import distinct_ngram_ratio, dominant_script
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -34,9 +34,10 @@ def main():
     ap.add_argument("--batch-size", type=int, default=16)
     ap.add_argument("--limit", type=int, help="first N rows per file (smoke test; writes nothing)")
     ap.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
+    ap.add_argument("--lang", help="FLORES code, for per-language configs (E1)")
     args = ap.parse_args()
 
-    cfg = yaml.safe_load(Path(args.config).read_text())
+    cfg = load_config(args.config, args.lang)
     name = cfg["model"]
     gen_dir = ROOT / cfg["out_dir"].format(model=name)
     lab_dir = gen_dir / "judge" / args.judge

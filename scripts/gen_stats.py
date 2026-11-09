@@ -12,10 +12,10 @@ from collections import Counter
 from pathlib import Path
 from statistics import mean, median
 
-import yaml
-
 from harm_route.models import load_tokenizer
-from harm_route.text_stats import LOOP_D4 as LOOP, distinct_ngram_ratio, dominant_script, max_line_repeat
+from harm_route.run_config import load_config
+from harm_route.text_stats import LOOP_D4 as LOOP
+from harm_route.text_stats import distinct_ngram_ratio, dominant_script, max_line_repeat
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -23,8 +23,9 @@ ROOT = Path(__file__).resolve().parents[1]
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", required=True)
+    ap.add_argument("--lang", help="FLORES code, for per-language configs (E1)")
     args = ap.parse_args()
-    cfg = yaml.safe_load(Path(args.config).read_text())
+    cfg = load_config(args.config, args.lang)
     name = cfg["model"]
     tok = load_tokenizer(name)
     out_dir = ROOT / cfg["out_dir"].format(model=name)
