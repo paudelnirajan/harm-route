@@ -1,0 +1,36 @@
+# Languages, keyed by FLORES+ code ({iso639-3}_{Script}). Nothing language-specific lives in code.
+#
+# script:  dominant Unicode script name of correct text (text_stats.dominant_script): used for the
+#          garbled / wrong-language check and translation QC.
+# source:  how the prompts in this language are made
+#   original   : the English source prompts as-is
+#   mt         : machine-translated from English. NLLB uses the FLORES key itself; Google needs google_code
+#   transform  : deterministic transform of another language's prompts (`from`, `transform` in
+#                harm_route.transforms.TRANSFORMS)
+#   romanize   : natural romanization tool (not implemented yet)
+
+eng_Latn:
+  script: LATIN
+  source: original
+  google_code: en
+
+npi_Deva:
+  script: DEVANAGARI
+  source: mt
+  google_code: ne
+
+npi_Latn:
+  script: LATIN
+  source: romanize          # TODO: IndicXlit (natural) vs uroman (rule); user verifies
+  from: npi_Deva
+
+srp_Cyrl:
+  script: CYRILLIC
+  source: mt
+  google_code: sr       # Google outputs Serbian in Cyrillic
+
+srp_Latn:
+  script: LATIN
+  source: transform         # lossless 1:1 Cyrillic -> Latin (Gaj): same words, only the script changes
+  from: srp_Cyrl
+  transform: srp_cyrl_to_latn

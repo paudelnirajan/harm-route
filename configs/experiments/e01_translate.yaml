@@ -1,0 +1,23 @@
+# E1 pilot data: translate the E0 test prompts (the ones this model refuses / answers in English) into
+# other languages. Prompt i is the same request in every language -> only the language changes.
+model: qwen3-1.7b                                  # whose E0 splits to translate
+splits: data/raw/e00/{model}_splits.json
+sets: [harmful_val, harmless_val]
+languages: [eng_Latn, npi_Deva, srp_Cyrl, srp_Latn]  # properties in configs/languages.yaml
+out_dir: data/raw/e01/{model}                      # git-ignored: translated harmful prompts
+
+# MT systems; outputs go to {out_dir}/mt/{system}/, human reviews to {out_dir}/review/{system}/
+primary: google      # the system whose output (+ human post-editing) is used downstream
+mt_systems:
+  google:
+    kind: google                                   # Cloud Translation v2; sends prompts to Google
+    key_file: ~/.config/harm-route/google_translate_key
+  nllb:
+    kind: nllb
+    hf_id: facebook/nllb-200-distilled-1.3B        # CC-BY-NC-4.0 (research use); stiff/literal Nepali
+    num_beams: 4
+    batch_size: 16
+    max_new_tokens: 256
+
+qc:
+  chrf_flag: 40      # back-translation chrF below this -> listed for a human look (keys only)
