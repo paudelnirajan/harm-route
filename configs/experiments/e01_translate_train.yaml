@@ -1,0 +1,17 @@
+# E1: translate the E0 TRAIN prompts, to build each language's OWN h / r (then test them on the reviewed val set).
+# Not human-reviewed (260 prompts per language): items with back-translation chrF < chrf_flag are dropped.
+# Same pipeline and files as e01_translate.yaml, in a separate out_dir so val and train never mix.
+model: qwen3-1.7b
+splits: data/raw/e00/{model}_splits.json
+sets: [harmful_train, harmless_train]
+languages: [eng_Latn, npi_Deva, srp_Cyrl, srp_Latn]
+out_dir: data/raw/e01/{model}/train                # git-ignored: translated harmful prompts
+
+primary: google
+mt_systems:
+  google:
+    kind: google
+    key_file: ~/.config/harm-route/google_translate_key
+
+qc:
+  chrf_flag: 40
