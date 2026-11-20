@@ -1,0 +1,9 @@
+# E1: cache residual activations (all layers) for train + val prompts, per language, for probes.
+# Per language: --lang <FLORES code>. Positions as in E0: h position = t_inst (last instruction token),
+# r position = last post-instruction (template) token.
+model: qwen3-1.7b
+languages: [eng_Latn, npi_Deva, srp_Cyrl, srp_Latn]
+splits: data/raw/e01/{model}/splits/{lang}.json              # val: harmful_val, harmless_val (reviewed)
+train_splits: data/raw/e01/{model}/train/splits/{lang}.json  # train: harmful_train, harmless_train (MT)
+out_dir: data/cache/e01/{model}                              # git-ignored; writes {lang}_acts.pt
+batch_size: 16
