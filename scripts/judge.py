@@ -35,9 +35,10 @@ def main():
     ap.add_argument("--limit", type=int, help="first N rows per file (smoke test; writes nothing)")
     ap.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     ap.add_argument("--lang", help="FLORES code, for per-language configs (E1)")
+    ap.add_argument("--model", help="override the config's model (the generator)")
     args = ap.parse_args()
 
-    cfg = load_config(args.config, args.lang)
+    cfg = load_config(args.config, args.lang, args.model)
     name = cfg["model"]
     gen_dir = ROOT / cfg["out_dir"].format(model=name)
     lab_dir = gen_dir / "judge" / args.judge

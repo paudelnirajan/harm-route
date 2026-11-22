@@ -81,9 +81,10 @@ def main():
     ap.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     ap.add_argument("--check", action="store_true", help="batched vs one-by-one on 4 prompts, then exit")
     ap.add_argument("--lang", help="FLORES code, for per-language configs (E1)")
+    ap.add_argument("--model", help="override the config's model (key in configs/models.yaml)")
     args = ap.parse_args()
 
-    cfg = load_config(args.config, args.lang)
+    cfg = load_config(args.config, args.lang, args.model)
     name = cfg["model"]
     mcfg = model_config(name)
     kw = mcfg["template_kwargs"]
@@ -95,14 +96,15 @@ def main():
     bridge = load_bridge(name, device=args.device, dtype=dtype)
     n_layers, d_model = bridge.cfg.n_layers, bridge.cfg.d_model
     splits = json.loads((ROOT / cfg["splits"].format(model=name)).read_text())
-    dirs = torch.load(ROOT / cfg["directions"].format(model=name))
+    needs_dirs = any(c != "base" for c in cfg["conditions"])  # base-only runs need no direction file
+    dirs = torch.load(ROOT / cfg["directions"].format(model=name)) if needs_dirs else None
     levels = None
     if "tinst_h_harmless" in cfg["conditions"]:  # target from TRAIN harmless prompts (never the val set)
         levels = t_inst_levels(bridge, tok, splits["harmless_train"], kw, pad_id, dirs["h"][cfg["h_layer"]])
         print(f"harmless level on h at t_inst, L{cfg['h_layer']}: {levels[cfg['h_layer']]:.2f}")
-    conds = build_conditions(cfg, dirs, n_layers, d_model, levels)
-    print(f"{name} on {args.device} {dtype}; r[{cfg['r_pos']}, L{cfg['r_layer']}] "
-          f"depth {cfg['r_layer'] / (n_layers - 1):.2f}; conditions {list(conds)}")
+    conds = build_conditions(cfg, dirs, n_layers, d_model, levels) if needs_dirs else {"base": []}
+    where = f"r[{cfg['r_pos']}, L{cfg['r_layer']}] depth {cfg['r_layer'] / (n_layers - 1):.2f}; " if needs_dirs else ""
+    print(f"{name} on {args.device} {dtype}; {where}conditions {list(conds)}")
 
     if args.check:  # left padding must not change greedy outputs
         X = splits["harmless_val"][:4]

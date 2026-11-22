@@ -14,10 +14,14 @@ def resid_hook_names(bridge) -> list[str]:
     return [f"blocks.{l}.hook_resid_post" for l in range(bridge.cfg.n_layers)]
 
 
-def collect_resid(bridge, ps: list[dict], pad_id: int, side: str = "left"):
+def collect_resid(bridge, ps: list[dict], pad_id: int, side: str = "left", hooks=None):
     """Residual stream after every block, at t_inst and at every t_post_inst token.
 
     ps: outputs of find_positions (same model). All must have the same number P of t_post_inst.
+    hooks: optional forward hooks active during the pass (e.g. a patch): a list of (name, fn), or a
+    callable (ps, shift) -> list for hooks that need each batch's padded token positions.
+    A patch at blocks.l.hook_resid_post IS seen by the cache at layer l (verified: patched reading = target),
+    layers < l are unchanged (0.0 diff), and batch 3 vs 1 under hooks agrees to ~4e-4.
     Returns acts_inst [B, L, d], acts_post [B, P, L, d] (float32, CPU).
     """
     seqs = [p["input_ids"] for p in ps]
@@ -25,7 +29,8 @@ def collect_resid(bridge, ps: list[dict], pad_id: int, side: str = "left"):
     device = bridge.cfg.device
     names = resid_hook_names(bridge)
 
-    with torch.inference_mode():
+    hk = [] if hooks is None else (hooks(ps, shift) if callable(hooks) else list(hooks))
+    with torch.inference_mode(), bridge.hooks(fwd_hooks=hk):
         _, cache = bridge.run_with_cache(
             ids.to(device), attention_mask=mask.to(device), names_filter=names
         )
@@ -41,12 +46,13 @@ def collect_resid(bridge, ps: list[dict], pad_id: int, side: str = "left"):
 
 
 def collect_resid_batched(
-    bridge, ps: list[dict], pad_id: int, batch_size: int = 16, side: str = "left"
+    bridge, ps: list[dict], pad_id: int, batch_size: int = 16, side: str = "left", hooks=None
 ):
-    """collect_resid over many prompts in chunks. Returns acts_inst [N, L, d], acts_post [N, P, L, d]."""
+    """collect_resid over many prompts in chunks (hooks as in collect_resid; a callable is called per chunk).
+    Returns acts_inst [N, L, d], acts_post [N, P, L, d]."""
     inst, post = [], []
     for i in tqdm(range(0, len(ps), batch_size), desc="collect"):
-        a_inst, a_post = collect_resid(bridge, ps[i : i + batch_size], pad_id, side)
+        a_inst, a_post = collect_resid(bridge, ps[i : i + batch_size], pad_id, side, hooks)
         inst.append(a_inst)
         post.append(a_post)
     return torch.cat(inst), torch.cat(post)

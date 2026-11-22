@@ -17,6 +17,16 @@ qwen3-1.7b:
   # first token of its English refusals ("I'm sorry, but", "I cannot assist", "I must ...")
   refusal_tokens: ["I"]
 
+qwen3-4b:
+  hf_id: Qwen/Qwen3-4B
+  role: scale          # model-size check (E1); same prompt set as qwen3-1.7b
+  template_kwargs: {enable_thinking: false}
+
+qwen3-8b:
+  hf_id: Qwen/Qwen3-8B
+  role: scale
+  template_kwargs: {enable_thinking: false}
+
 gemma3-1b-it:
   hf_id: unsloth/gemma-3-1b-it   # ungated mirror of google/gemma-3-1b-it
   role: main

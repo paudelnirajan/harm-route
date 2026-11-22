@@ -9,8 +9,12 @@ ROOT = Path(__file__).resolve().parents[2]
 PATH_KEYS = ("splits", "train_splits", "directions", "out_dir")
 
 
-def load_config(path: str | Path, lang: str | None = None) -> dict:
+def load_config(path: str | Path, lang: str | None = None, model: str | None = None) -> dict:
+    """model overrides the config's `model`. `{prompt_model}` in a path = the model whose prompt set is
+    used (config key `prompt_model`, default: the model itself), so several models can share one prompt set."""
     cfg = yaml.safe_load(Path(path).read_text())
+    if model is not None:
+        cfg["model"] = model
     if lang is None:
         if any("{lang}" in str(cfg.get(k, "")) for k in PATH_KEYS):
             raise SystemExit(f"{path} is per-language: pass --lang (one of {cfg.get('languages')})")
@@ -20,7 +24,7 @@ def load_config(path: str | Path, lang: str | None = None) -> dict:
     langs = yaml.safe_load((ROOT / "configs" / "languages.yaml").read_text())
     for k in PATH_KEYS:
         if k in cfg:
-            cfg[k] = cfg[k].format(model=cfg["model"], lang=lang)
+            cfg[k] = cfg[k].format(model=cfg["model"], lang=lang, prompt_model=cfg.get("prompt_model", cfg["model"]))
     cfg["lang"] = lang
     cfg["expected_script"] = langs[lang]["script"]  # garbled / wrong-language check in judge.py
     return cfg

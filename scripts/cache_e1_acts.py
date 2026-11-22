@@ -32,10 +32,12 @@ def main():
     ap.add_argument("--device", default="cpu")
     ap.add_argument("--limit", type=int, help="first N prompts per set (smoke test; output gets a _smoke suffix)")
     ap.add_argument("--overwrite", action="store_true")
+    ap.add_argument("--model", help="override the config's model (key in configs/models.yaml)")
+    ap.add_argument("--dtype", help="compute dtype, e.g. bfloat16 on GPU (default: config / float32); stored as float32")
     args = ap.parse_args()
 
     langs = args.lang or yaml.safe_load(Path(args.config).read_text())["languages"]
-    base = load_config(args.config, langs[0])
+    base = load_config(args.config, langs[0], args.model)
     name = base["model"]
     tok = load_tokenizer(name)
     kw = model_config(name)["template_kwargs"]
@@ -43,14 +45,14 @@ def main():
     bridge = None  # loaded lazily, so a run where every file exists does not load the model
 
     for lang in langs:
-        cfg = load_config(args.config, lang)
+        cfg = load_config(args.config, lang, args.model)
         out = ROOT / cfg["out_dir"] / f"{lang}_acts{'_smoke' if args.limit else ''}.pt"
         if out.exists() and not args.overwrite:
             print(f"{lang}: exists, skip ({out.relative_to(ROOT)})")
             continue
         if bridge is None:
-            bridge = load_bridge(name, device=args.device)
-        res = {"meta": {"model": name, "lang": lang, "device": args.device,
+            bridge = load_bridge(name, device=args.device, dtype=getattr(torch, args.dtype) if args.dtype else None)
+        res = {"meta": {"model": name, "lang": lang, "device": args.device, "dtype": str(bridge.cfg.dtype),
                         "positions": {"inst": "t_inst (h)", "last": "last post-inst (r)"}}}
         for key in ("train_splits", "splits"):
             data = json.loads((ROOT / cfg[key]).read_text())
