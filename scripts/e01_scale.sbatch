@@ -11,6 +11,8 @@
 # Per model: base generations + judge for every language, then the activation cache (probes / directions).
 # Preemptable: can be killed and requeued; every step skips files that already exist, so it resumes.
 # Usage (login node, repo root):  mkdir -p logs && sbatch scripts/e01_scale.sbatch <model> [langs...]
+# Other config (e.g. train prompts), no cache step:
+#   sbatch --export=ALL,CFG=configs/experiments/e01_scale_train.yaml,SKIP_CACHE=1 scripts/e01_scale.sbatch qwen3-8b
 # Override the GPU type at submit time, e.g. sbatch --gres=gpu:l40:1 scripts/e01_scale.sbatch qwen3-8b
 set -euo pipefail
 export HF_HOME=/projects/$USER/hf UV_CACHE_DIR=/projects/$USER/.cache/uv
@@ -18,13 +20,15 @@ export HF_HUB_OFFLINE=1 PYTHONUNBUFFERED=1 TQDM_DISABLE=1
 export PATH=/curc/sw/install/uv/0.8.15/.local/bin:$PATH
 cd /projects/$USER/harm-route
 git rev-parse --short HEAD; nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
+CFG=${CFG:-configs/experiments/e01_scale.yaml}
 MODEL="$1"; shift
 LANGS=("$@"); [ ${#LANGS[@]} -eq 0 ] && LANGS=(eng_Latn npi_Deva srp_Cyrl srp_Latn)
 for L in "${LANGS[@]}"; do
   echo "=== $MODEL $L: generate + judge ==="
-  uv run python scripts/generate_e0.py --config configs/experiments/e01_scale.yaml --model "$MODEL" --lang "$L"
-  uv run python scripts/judge.py --judge qwen3guard-4b --config configs/experiments/e01_scale.yaml --model "$MODEL" --lang "$L"
+  uv run python scripts/generate_e0.py --config "$CFG" --model "$MODEL" --lang "$L"
+  uv run python scripts/judge.py --judge qwen3guard-4b --config "$CFG" --model "$MODEL" --lang "$L"
 done
+[ -n "${SKIP_CACHE:-}" ] && exit 0
 echo "=== $MODEL: activation cache ==="
 uv run python scripts/cache_e1_acts.py --config configs/experiments/e01_acts.yaml --model "$MODEL" \
   --device cuda --dtype bfloat16 --lang "${LANGS[@]}"
