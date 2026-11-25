@@ -44,6 +44,8 @@ def main():
     lab_dir = gen_dir / "judge" / args.judge
     lab_dir.mkdir(parents=True, exist_ok=True)
     splits = json.loads((ROOT / cfg["splits"].format(model=name)).read_text())
+    if "train_splits" in cfg:  # sets from both split files, as in generate_e0.py
+        splits.update({k: v for k, v in json.loads((ROOT / cfg["train_splits"]).read_text()).items() if k != "meta"})
     expected_script = cfg.get("expected_script")  # E0: LATIN (English); None = don't check
 
     gtok = load_tokenizer(name)  # generator's tokenizer, for distinct-4 over model tokens

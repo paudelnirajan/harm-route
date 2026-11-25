@@ -6,7 +6,7 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
-PATH_KEYS = ("splits", "train_splits", "directions", "out_dir")
+PATH_KEYS = ("splits", "train_splits", "directions", "out_dir", "acts_dir")
 
 
 def load_config(path: str | Path, lang: str | None = None, model: str | None = None) -> dict:

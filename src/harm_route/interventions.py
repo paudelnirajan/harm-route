@@ -79,6 +79,39 @@ def pos_mean_ablate_hooks(v: torch.Tensor, mus: torch.Tensor, idx: torch.Tensor)
     return [(f"blocks.{l}.hook_resid_post", make_pos_mean_ablate(v, mus[l].item(), idx)) for l in range(len(mus))]
 
 
+def make_span_add(v: torch.Tensor, delta: torch.Tensor, start: torch.Tensor, end: torch.Tensor):
+    """Hook that adds delta[b] * v_hat to tokens start[b]..end[b] (inclusive) of row b; other tokens untouched.
+
+    delta [b] (one push size per prompt, e.g. a top-up to a target level), start / end [b] padded indices.
+    Skips single-token steps (generation with a KV cache): the prompt tokens are already in the cache.
+    """
+    v_hat = v / v.norm()  # [d]
+
+    def fn(resid, hook):  # resid [b, T, d]
+        if resid.shape[1] == 1:
+            return resid
+        pos = torch.arange(resid.shape[1], device=resid.device)  # [T]
+        mask = (pos >= start.to(resid.device)[:, None]) & (pos <= end.to(resid.device)[:, None])  # [b, T]
+        push = delta.to(resid.device, resid.dtype)[:, None, None] * v_hat.to(resid.device, resid.dtype)  # [b, 1, d]
+        return resid + mask[..., None].to(resid.dtype) * push  # [b, T, 1] * [b, 1, d] -> [b, T, d]
+
+    return fn
+
+
+def span_add_hooks(v: torch.Tensor, layer: int, key: str = "push"):
+    """Callable (ps, shift) -> hooks: add p[key] * v_hat on the instruction span (inst_start..t_inst) of each
+    prompt at blocks.{layer}.hook_resid_post. The push size is read from each find_positions dict, so it
+    follows the prompt through batching and padding."""
+
+    def build(ps, shift):
+        start = torch.tensor([p["inst_start"] for p in ps]) + shift  # [b]
+        end = torch.tensor([p["t_inst"] for p in ps]) + shift  # [b]
+        delta = torch.tensor([float(p[key]) for p in ps])  # [b]
+        return [(f"blocks.{layer}.hook_resid_post", make_span_add(v, delta, start, end))]
+
+    return build
+
+
 def t_inst_index(positions: list[dict], shift: torch.Tensor) -> torch.Tensor:
     """Index of t_inst in each padded row: original index + padding shift (left padding moves tokens right)."""
     return torch.tensor([p["t_inst"] for p in positions]) + shift  # [b]

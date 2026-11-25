@@ -1,0 +1,21 @@
+# E1 causal, stage 1 (readout only, no generation): patch-h on the harmful TRAIN prompts (joined later with
+# their refused / complied labels) and harmless val (control). Push English h on every instruction token at
+# h_layer; read h and r at every layer. Layers come from the directions file (notebook 08), not from here.
+# Usage: --model <key in configs/models.yaml> --lang <FLORES code>
+model: qwen3-8b
+prompt_model: qwen3-1.7b   # shared prompt set, same as e01_scale / e01_acts
+languages: [eng_Latn, npi_Deva, srp_Cyrl, srp_Latn]
+reference_lang: eng_Latn   # targets (harmful level, gap) come from this language's TRAIN cache
+splits: data/raw/e01/{prompt_model}/splits/{lang}.json
+train_splits: data/raw/e01/{prompt_model}/train/splits/{lang}.json
+directions: data/cache/e00/{model}_directions.pt
+acts_dir: data/cache/e01/{model}             # {lang}_acts.pt from cache_e1_acts.py
+out_dir: results/e01_causal/{model}          # writes {lang}_readout.pt (projections only, no text)
+
+sets:                       # set name -> which split file it lives in
+  harmful_train: train_splits
+  harmless_val: splits
+conditions: [base, topup_h, topup_rand, fixed_h, fixed_rand]
+batch_size: 16
+dtype: bfloat16
+seed: 0

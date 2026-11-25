@@ -1,0 +1,23 @@
+# E1 causal, push-layer sweep (readout only). Same as e01_causal.yaml, but the h push runs at several depths:
+# layers round(f * (n_layers - 1)) for f in push_depths, plus h_layer. Each push uses that layer's English h
+# direction and that layer's English targets (harmful level, gap). Question: does pushing harm EARLIER (before
+# the refusal signal separates refusers from compliers, ~L17 on 8B) close more of the complier->refuser gap?
+model: qwen3-8b
+prompt_model: qwen3-1.7b
+languages: [eng_Latn, npi_Deva, srp_Cyrl, srp_Latn]
+reference_lang: eng_Latn
+splits: data/raw/e01/{prompt_model}/splits/{lang}.json
+train_splits: data/raw/e01/{prompt_model}/train/splits/{lang}.json
+directions: data/cache/e00/{model}_directions.pt
+acts_dir: data/cache/e01/{model}
+out_dir: results/e01_causal/{model}
+tag: _sweep                 # writes {lang}_readout_sweep.pt (stage-1 files untouched)
+push_depths: [0.2, 0.3, 0.4, 0.5]   # 8B (36 layers): L7, L10, L14, L18 (+ h_layer 19)
+
+sets:
+  harmful_train: train_splits
+  harmless_val: splits
+conditions: [base, topup_h, topup_rand, fixed_h, fixed_rand]
+batch_size: 16
+dtype: bfloat16
+seed: 0
