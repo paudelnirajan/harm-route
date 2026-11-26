@@ -108,6 +108,10 @@ def main():
             f = TRANSFORMS[L["transform"]]
             prompts = {s: [f(p) for p in v] for s, v in make(L["from"]).items()}
             meta = {"source": "transform", "from": L["from"], "transform": L["transform"]}
+        elif L["source"] == "romanize":
+            print(f"{lang:9s} made by scripts/romanize.py, skipped")
+            made[lang] = {}
+            return made[lang]
         else:
             raise NotImplementedError(f"{lang}: source {L['source']!r} not implemented yet")
         made[lang] = prompts

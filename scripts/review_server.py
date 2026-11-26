@@ -34,8 +34,14 @@ def load_items(cfg, out_dir: Path, system: str, lang: str) -> list[dict]:
     eng = json.loads((ROOT / cfg["splits"].format(model=cfg["model"])).read_text())
     mt = json.loads((out_dir / "mt" / system / f"{lang}.json").read_text())
     qc = json.loads((out_dir / "mt" / system / f"{lang}_qc.json").read_text())
-    items = [{"key": f"{s}|{i}", "chrf": round(qc[s][i]["chrf"], 1), "english": eng[s][i], "mt": mt[s][i],
-              "back": qc[s][i]["back"]} for s in cfg["sets"] for i in range(len(mt[s]))]
+    # MT items: sort by back-translation chrF. Romanized items (chrf None): "back" is the native text, and the
+    # score shown is 100 - 30 per QC flag, so flagged items come first.
+    def score(r):
+        return round(r["chrf"], 1) if r["chrf"] is not None else 100 - 30 * len(r.get("flags", []))
+    items = [{"key": f"{s}|{i}", "chrf": score(qc[s][i]), "english": eng[s][i], "mt": mt[s][i],
+              "back": qc[s][i]["back"] + (f"   [flags: {', '.join(qc[s][i]['flags'])}"
+                                          f"{' ' + ' '.join(qc[s][i].get('english_words', []))}]" if qc[s][i].get("flags") else "")}
+             for s in cfg["sets"] for i in range(len(mt[s]))]
     return sorted(items, key=lambda it: it["chrf"])  # likely problems first
 
 
@@ -241,9 +247,13 @@ def main():
     args = ap.parse_args()
 
     cfg = yaml.safe_load(Path(args.config).read_text())
-    system = args.system or cfg["primary"]
-    if LANGS[args.lang]["source"] != "mt":
-        raise SystemExit(f"{args.lang} is {LANGS[args.lang]['source']!r}; review its source language instead")
+    src = LANGS[args.lang]["source"]
+    if src == "romanize":  # LLM output has its own files and reviews (scripts/romanize.py)
+        system = "romanized"
+    elif src == "mt":
+        system = args.system or cfg["primary"]
+    else:  # deterministic transforms (e.g. srp_Latn) have nothing to review of their own
+        raise SystemExit(f"{args.lang} is {src!r}; review its source language instead")
     token = secrets.token_urlsafe(16) if args.token == "auto" else args.token
     if args.host != "127.0.0.1" and not token:
         raise SystemExit("serving beyond this computer shows harmful prompts: pass --token (or --token auto)")

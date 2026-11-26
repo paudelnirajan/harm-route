@@ -3,7 +3,7 @@
 # r position = last post-instruction (template) token.
 model: qwen3-1.7b
 prompt_model: qwen3-1.7b   # prompt set (filtered on 1.7B, translated + reviewed) shared by all models; --model to switch
-languages: [eng_Latn, npi_Deva, srp_Cyrl, srp_Latn]
+languages: [eng_Latn, npi_Deva, npi_Latn, srp_Cyrl, srp_Latn, hin_Deva, hin_Latn, swh_Latn, zho_Hans]
 splits: data/raw/e01/{prompt_model}/splits/{lang}.json              # val: harmful_val, harmless_val (reviewed)
 train_splits: data/raw/e01/{prompt_model}/train/splits/{lang}.json  # train: harmful_train, harmless_train (MT)
 out_dir: data/cache/e01/{model}                              # git-ignored; writes {lang}_acts.pt

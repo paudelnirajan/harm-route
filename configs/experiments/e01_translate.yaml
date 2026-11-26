@@ -3,7 +3,7 @@
 model: qwen3-1.7b                                  # whose E0 splits to translate
 splits: data/raw/e00/{model}_splits.json
 sets: [harmful_val, harmless_val]
-languages: [eng_Latn, npi_Deva, srp_Cyrl, srp_Latn]  # properties in configs/languages.yaml
+languages: [eng_Latn, npi_Deva, npi_Latn, srp_Cyrl, srp_Latn, hin_Deva, hin_Latn, swh_Latn, zho_Hans]  # properties in configs/languages.yaml
 out_dir: data/raw/e01/{model}                      # git-ignored: translated harmful prompts
 
 # MT systems; outputs go to {out_dir}/mt/{system}/, human reviews to {out_dir}/review/{system}/

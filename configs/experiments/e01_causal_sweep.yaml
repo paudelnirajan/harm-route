@@ -4,7 +4,7 @@
 # the refusal signal separates refusers from compliers, ~L17 on 8B) close more of the complier->refuser gap?
 model: qwen3-8b
 prompt_model: qwen3-1.7b
-languages: [eng_Latn, npi_Deva, srp_Cyrl, srp_Latn]
+languages: [eng_Latn, npi_Deva, npi_Latn, srp_Cyrl, srp_Latn, hin_Deva, hin_Latn, swh_Latn, zho_Hans]
 reference_lang: eng_Latn
 splits: data/raw/e01/{prompt_model}/splits/{lang}.json
 train_splits: data/raw/e01/{prompt_model}/train/splits/{lang}.json

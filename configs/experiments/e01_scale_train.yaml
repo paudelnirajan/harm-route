@@ -3,7 +3,7 @@
 # Usage: --model <key in configs/models.yaml> --lang <FLORES code>
 model: qwen3-1.7b
 prompt_model: qwen3-1.7b   # same shared prompt set as e01_scale / e01_acts
-languages: [eng_Latn, npi_Deva, srp_Cyrl, srp_Latn]
+languages: [eng_Latn, npi_Deva, npi_Latn, srp_Cyrl, srp_Latn, hin_Deva, hin_Latn, swh_Latn, zho_Hans]
 splits: data/raw/e01/{prompt_model}/train/splits/{lang}.json   # MT train prompts (not human-reviewed)
 out_dir: data/generations/e01_scale/{model}/{lang}             # same dir as val: files are harmful_train__base.jsonl
 

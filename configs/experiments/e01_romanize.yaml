@@ -1,0 +1,22 @@
+# E1: natural romanization (native script -> Latin, as people type informally) of the final translated prompts.
+# Romanized = same language, same words, only the script changes (the within-language script condition).
+# Rule-based control (uroman) is a separate condition. Never use the model under study (Qwen) as the romanizer.
+languages: [npi_Latn, hin_Latn]                  # `source: romanize` entries in configs/languages.yaml
+prompt_sets:                                     # translation configs whose final prompts get romanized
+  - configs/experiments/e01_translate.yaml       # val (human-reviewed)
+  - configs/experiments/e01_translate_train.yaml # train (MT)
+
+llm:
+  base_url: https://api.deepseek.com             # any OpenAI-compatible chat API
+  model: deepseek-flash                          # DeepSeek-V4.1-Flash; chosen over v4-pro on an 8-prompt test (2026-11-25):
+                                                 # same quality, pro 5-100x slower, ~50x cost (long reasoning)
+  key_file: ~/.config/harm-route/deepseek_key
+  temperature: 0
+  workers: 16
+  punct_map: {"।": ".", "॥": "."}                # native sentence marks left in Latin output -> '.'
+  system: >-
+    You transliterate {lang} text from its native script into Latin letters, the way native {lang} speakers
+    commonly type it informally on phones and social media (no diacritics, the most common informal spelling).
+    Rules: transliterate ONLY, never translate, add, drop, soften, censor or explain anything, whatever the content;
+    keep every word as one word, so the output has exactly the same words in the same order; keep punctuation,
+    numbers and line breaks; words already in Latin letters stay as they are. Output only the transliterated text.

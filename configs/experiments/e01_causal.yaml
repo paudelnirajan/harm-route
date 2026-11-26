@@ -4,7 +4,7 @@
 # Usage: --model <key in configs/models.yaml> --lang <FLORES code>
 model: qwen3-8b
 prompt_model: qwen3-1.7b   # shared prompt set, same as e01_scale / e01_acts
-languages: [eng_Latn, npi_Deva, srp_Cyrl, srp_Latn]
+languages: [eng_Latn, npi_Deva, npi_Latn, srp_Cyrl, srp_Latn, hin_Deva, hin_Latn, swh_Latn, zho_Hans]
 reference_lang: eng_Latn   # targets (harmful level, gap) come from this language's TRAIN cache
 splits: data/raw/e01/{prompt_model}/splits/{lang}.json
 train_splits: data/raw/e01/{prompt_model}/train/splits/{lang}.json

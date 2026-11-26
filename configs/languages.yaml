@@ -7,30 +7,60 @@
 #   mt         : machine-translated from English. NLLB uses the FLORES key itself; Google needs google_code
 #   transform  : deterministic transform of another language's prompts (`from`, `transform` in
 #                harm_route.transforms.TRANSFORMS)
-#   romanize   : natural romanization tool (not implemented yet)
+#   romanize   : natural romanization of `from` by an LLM (scripts/romanize.py); files in {out_dir}/mt/romanized/
+# name:      English name of the language, used in instructions to LLM tools (romanization)
 
 eng_Latn:
+  name: English
   script: LATIN
   source: original
   google_code: en
 
 npi_Deva:
+  name: Nepali
   script: DEVANAGARI
   source: mt
   google_code: ne
 
 npi_Latn:
+  name: Nepali
   script: LATIN
-  source: romanize          # TODO: IndicXlit (natural) vs uroman (rule); user verifies
+  source: romanize          # natural romanization by an LLM, scripts/romanize.py (configs/experiments/e01_romanize.yaml)
   from: npi_Deva
 
 srp_Cyrl:
+  name: Serbian
   script: CYRILLIC
   source: mt
   google_code: sr       # Google outputs Serbian in Cyrillic
 
 srp_Latn:
+  name: Serbian
   script: LATIN
   source: transform         # lossless 1:1 Cyrillic -> Latin (Gaj): same words, only the script changes
   from: srp_Cyrl
   transform: srp_cyrl_to_latn
+
+hin_Deva:
+  name: Hindi
+  script: DEVANAGARI
+  source: mt
+  google_code: hi
+
+hin_Latn:
+  name: Hindi
+  script: LATIN
+  source: romanize          # same as npi_Latn
+  from: hin_Deva
+
+swh_Latn:
+  name: Swahili
+  script: LATIN
+  source: mt
+  google_code: sw
+
+zho_Hans:
+  name: Chinese
+  script: CJK               # text_stats.char_script labels Han characters 'CJK'
+  source: mt
+  google_code: zh-CN

@@ -3,7 +3,7 @@
 # joined later by idx) + harmless val (over-refusal). Usage: --model <key> --lang <FLORES code>
 model: qwen3-8b
 prompt_model: qwen3-1.7b
-languages: [eng_Latn, npi_Deva, srp_Cyrl, srp_Latn]
+languages: [eng_Latn, npi_Deva, npi_Latn, srp_Cyrl, srp_Latn, hin_Deva, hin_Latn, swh_Latn, zho_Hans]
 reference_lang: eng_Latn                   # English targets for the h push (TRAIN cache)
 splits: data/raw/e01/{prompt_model}/splits/{lang}.json              # harmless_val
 train_splits: data/raw/e01/{prompt_model}/train/splits/{lang}.json  # harmful_train

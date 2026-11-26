@@ -6,7 +6,8 @@ Files (written by scripts/translate.py and scripts/review_translations.py, all g
   {out_dir}/review/{system}/{lang}__{reviewer}.jsonl human decisions {"key": "set|idx", "decision", "text"}
 A review belongs to the system whose text was reviewed (a fix edits that system's translation).
 
-Rule per item, per language (a transform language, e.g. srp_Latn, inherits from its source, e.g. srp_Cyrl):
+Rule per item, per language (a transform language, e.g. srp_Latn, inherits from its source, e.g. srp_Cyrl;
+a romanize language, e.g. npi_Latn, reads {out_dir}/mt/romanized/ and review/romanized/, plus its source's drops):
   reviewed       -> the reviewer's decision (fix replaces the text; drop drops it)
   not reviewed   -> keep, unless back-translation chrF < chrf_flag (then drop)
 An item dropped in ANY language is dropped in ALL, so comparisons across languages stay paired.
@@ -64,6 +65,11 @@ def final_prompts(out_dir: Path, system: str, langs: list[str], lang_cfg: dict, 
             f = TRANSFORMS[L["transform"]]
             prompts[lang] = {s: [f(t) for t in v] for s, v in build(L["from"]).items()}
             why[lang] = 0  # inherits its source's decisions
+        elif L["source"] == "romanize":  # LLM romanization of `from` (scripts/romanize.py): own file + own reviews
+            build(L["from"])             # the source's drops apply too
+            prompts[lang], d = _decide(out_dir, "romanized", lang, sets, chrf_flag)
+            dropped.update(d)
+            why[lang] = len(d)
         else:
             prompts[lang], d = _decide(out_dir, system, lang, sets, chrf_flag)
             dropped.update(d)

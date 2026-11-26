@@ -4,7 +4,7 @@
 model: qwen3-1.7b
 splits: data/raw/e00/{model}_splits.json
 sets: [harmful_train, harmless_train]
-languages: [eng_Latn, npi_Deva, srp_Cyrl, srp_Latn]
+languages: [eng_Latn, npi_Deva, npi_Latn, srp_Cyrl, srp_Latn, hin_Deva, hin_Latn, swh_Latn, zho_Hans]
 out_dir: data/raw/e01/{model}/train                # git-ignored: translated harmful prompts
 
 primary: google
